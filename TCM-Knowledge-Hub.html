@@ -1,0 +1,1261 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中医学习平台 - 从零基础到辨证论治</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        tcm: {
+                            primary: '#8B4513',
+                            secondary: '#D2691E',
+                            accent: '#CD853F',
+                            green: '#228B22',
+                            red: '#DC143C',
+                            gold: '#FFD700'
+                        }
+                    }
+                }
+            }
+        }
+
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+    </script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #f5f1eb 0%, #e8dcc0 100%);
+        }
+        
+        .dark .gradient-bg {
+            background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+        }
+        
+        .organ-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .organ-circle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.6s ease forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .connection-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, #8B4513, #D2691E);
+            transform-origin: left center;
+        }
+        
+        .tooltip {
+            position: absolute;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+        
+        .syndrome-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        
+        .syndrome-card:hover {
+            border-left-color: #8B4513;
+            transform: translateX(5px);
+        }
+        
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .accordion-content.open {
+            max-height: 1000px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <!-- Header -->
+    <header class="bg-white dark:bg-gray-800 shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-tcm-primary rounded-full flex items-center justify-center mr-3">
+                        <i class="fas fa-yin-yang text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-tcm-primary">中医学习平台</h1>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">传统医学 · 现代学习</p>
+                    </div>
+                </div>
+                <nav class="hidden md:flex space-x-6">
+                    <a href="#basics" class="hover:text-tcm-primary transition-colors">基础理论</a>
+                    <a href="#syndromes" class="hover:text-tcm-primary transition-colors">辨证分型</a>
+                    <a href="#organs" class="hover:text-tcm-primary transition-colors">五脏六腑</a>
+                    <a href="#prescriptions" class="hover:text-tcm-primary transition-colors">方药食补</a>
+                    <a href="#books" class="hover:text-tcm-primary transition-colors">学习资源</a>
+                </nav>
+                <button id="mobileMenuBtn" class="md:hidden">
+                    <i class="fas fa-bars text-2xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Mobile Menu -->
+        <div id="mobileMenu" class="md:hidden hidden bg-white dark:bg-gray-800 border-t">
+            <div class="px-4 py-2 space-y-2">
+                <a href="#basics" class="block py-2 hover:text-tcm-primary">基础理论</a>
+                <a href="#syndromes" class="block py-2 hover:text-tcm-primary">辨证分型</a>
+                <a href="#organs" class="block py-2 hover:text-tcm-primary">五脏六腑</a>
+                <a href="#prescriptions" class="block py-2 hover:text-tcm-primary">方药食补</a>
+                <a href="#books" class="block py-2 hover:text-tcm-primary">学习资源</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="gradient-bg py-16">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-4xl md:text-5xl font-bold mb-6 text-tcm-primary">零基础学中医</h2>
+            <p class="text-xl mb-8 text-gray-700 dark:text-gray-300 max-w-3xl mx-auto">
+                系统学习中医辨证论治，掌握食补药补方案，传承千年智慧，守护健康生活
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <button onclick="scrollToSection('basics')" class="bg-tcm-primary hover:bg-tcm-secondary text-white px-8 py-3 rounded-lg transition-colors">
+                    开始学习
+                </button>
+                <button onclick="scrollToSection('syndromes')" class="border-2 border-tcm-primary text-tcm-primary hover:bg-tcm-primary hover:text-white px-8 py-3 rounded-lg transition-colors">
+                    辨证自测
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 基础理论 -->
+    <section id="basics" class="py-16">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center mb-12 text-tcm-primary">中医基础理论</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- 阴阳五行 -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 fade-in">
+                    <div class="w-16 h-16 bg-tcm-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-yin-yang text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-center mb-4">阴阳五行</h3>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">
+                        阴阳是中医理论的基础，五行学说指导脏腑关系。阴阳平衡是健康的根本。
+                    </p>
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="font-medium">阳：</span>
+                            <span class="text-tcm-red">温热、向上、外向、活跃</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium">阴：</span>
+                            <span class="text-blue-600">寒凉、向下、内向、安静</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 气血津液 -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 fade-in" style="animation-delay: 0.2s">
+                    <div class="w-16 h-16 bg-tcm-green rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-wind text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-center mb-4">气血津液</h3>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">
+                        气血津液是构成人体和维持生命活动的基本物质，三者密切相关。
+                    </p>
+                    <div class="space-y-2">
+                        <div><span class="font-medium">气：</span>推动、温煦、防御、固摄</div>
+                        <div><span class="font-medium">血：</span>濡养、营养全身脏腑</div>
+                        <div><span class="font-medium">津液：</span>滋润、濡养皮肤毛发</div>
+                    </div>
+                </div>
+
+                <!-- 经络学说 -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 fade-in" style="animation-delay: 0.4s">
+                    <div class="w-16 h-16 bg-tcm-accent rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-project-diagram text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-center mb-4">经络学说</h3>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">
+                        经络是气血运行的通道，连接脏腑、沟通内外。
+                    </p>
+                    <div class="space-y-2">
+                        <div><span class="font-medium">十二正经：</span>连接脏腑的主要通道</div>
+                        <div><span class="font-medium">奇经八脉：</span>调节气血的特殊通道</div>
+                        <div><span class="font-medium">络脉：</span>经脉的分支网络</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 五脏六腑关系图 -->
+    <section id="organs" class="py-16 bg-gray-100 dark:bg-gray-800">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center mb-12 text-tcm-primary">五脏六腑经络联系</h2>
+            
+            <!-- 五脏六腑关系图 -->
+            <div class="relative max-w-4xl mx-auto mb-12" id="organMap">
+                <div class="grid grid-cols-3 gap-8 items-center justify-items-center min-h-[400px]">
+                    <!-- 心 -->
+                    <div class="organ-circle bg-tcm-red text-white relative" data-organ="heart" style="grid-column: 2; grid-row: 1;">
+                        <div class="text-center">
+                            <i class="fas fa-heart text-2xl mb-2"></i>
+                            <div class="font-bold">心</div>
+                            <div class="text-xs">主血脉</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 肝 -->
+                    <div class="organ-circle bg-tcm-green text-white" data-organ="liver" style="grid-column: 1; grid-row: 2;">
+                        <div class="text-center">
+                            <i class="fas fa-leaf text-2xl mb-2"></i>
+                            <div class="font-bold">肝</div>
+                            <div class="text-xs">主疏泄</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 脾 -->
+                    <div class="organ-circle bg-yellow-600 text-white" data-organ="spleen" style="grid-column: 2; grid-row: 2;">
+                        <div class="text-center">
+                            <i class="fas fa-circle text-2xl mb-2"></i>
+                            <div class="font-bold">脾</div>
+                            <div class="text-xs">主运化</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 肺 -->
+                    <div class="organ-circle bg-gray-500 text-white" data-organ="lung" style="grid-column: 3; grid-row: 2;">
+                        <div class="text-center">
+                            <i class="fas fa-lungs text-2xl mb-2"></i>
+                            <div class="font-bold">肺</div>
+                            <div class="text-xs">主气</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 肾 -->
+                    <div class="organ-circle bg-black text-white" data-organ="kidney" style="grid-column: 2; grid-row: 3;">
+                        <div class="text-center">
+                            <i class="fas fa-kidney text-2xl mb-2"></i>
+                            <div class="font-bold">肾</div>
+                            <div class="text-xs">主藏精</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 脏腑详情显示区 -->
+            <div id="organDetails" class="bg-white dark:bg-gray-700 rounded-lg shadow-lg p-6 hidden">
+                <div id="organContent">
+                    <!-- 内容将通过JavaScript动态填充 -->
+                </div>
+            </div>
+            
+            <!-- 连锁反应示例 -->
+            <div class="mt-12">
+                <h3 class="text-2xl font-bold text-center mb-8 text-tcm-primary">脏腑连锁反应示例</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="bg-white dark:bg-gray-700 rounded-lg shadow-lg p-6">
+                        <h4 class="text-xl font-bold mb-4 text-tcm-secondary">肝郁脾虚证</h4>
+                        <div class="space-y-3">
+                            <div class="flex items-center">
+                                <span class="w-8 h-8 bg-tcm-green rounded-full flex items-center justify-center text-white text-sm mr-3">1</span>
+                                <span>情志不舒 → 肝气郁结</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="w-8 h-8 bg-yellow-600 rounded-full flex items-center justify-center text-white text-sm mr-3">2</span>
+                                <span>肝木克脾土 → 脾胃运化失职</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="w-8 h-8 bg-tcm-red rounded-full flex items-center justify-center text-white text-sm mr-3">3</span>
+                                <span>脾虚生痰 → 痰湿上扰心神</span>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-3 bg-gray-100 dark:bg-gray-600 rounded">
+                            <strong>症状：</strong>胸胁胀满、情绪抑郁、腹胀便溏、食欲不振、失眠多梦
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-700 rounded-lg shadow-lg p-6">
+                        <h4 class="text-xl font-bold mb-4 text-tcm-secondary">心肾不交证</h4>
+                        <div class="space-y-3">
+                            <div class="flex items-center">
+                                <span class="w-8 h-8 bg-black rounded-full flex items-center justify-center text-white text-sm mr-3">1</span>
+                                <span>肾阴不足 → 虚火上炎</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="w-8 h-8 bg-tcm-red rounded-full flex items-center justify-center text-white text-sm mr-3">2</span>
+                                <span>心火上亢 → 心肾不交</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white text-sm mr-3">3</span>
+                                <span>阴阳失调 → 水火不济</span>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-3 bg-gray-100 dark:bg-gray-600 rounded">
+                            <strong>症状：</strong>心烦失眠、潮热盗汗、腰酸耳鸣、五心烦热、健忘多梦
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 辨证分型 -->
+    <section id="syndromes" class="py-16">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center mb-12 text-tcm-primary">中医辨证分型大全</h2>
+            
+            <!-- 虚证分类 -->
+            <div class="mb-12">
+                <h3 class="text-2xl font-bold mb-6 text-tcm-secondary">虚证分类</h3>
+                
+                <!-- 气虚证 -->
+                <div class="accordion-item mb-6">
+                    <button class="accordion-header w-full bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 text-left flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <h4 class="text-xl font-bold text-tcm-primary">气虚证</h4>
+                        <i class="fas fa-chevron-down accordion-icon transition-transform"></i>
+                    </button>
+                    <div class="accordion-content bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
+                        <div class="p-6 border-t">
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <!-- 心气虚 -->
+                                <div class="syndrome-card bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                    <h5 class="font-bold text-tcm-red mb-3">心气虚</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div><strong>主症：</strong>心悸、气短、胸闷</div>
+                                        <div><strong>兼症：</strong>神疲乏力、自汗、脉弱</div>
+                                        <div><strong>舌象：</strong>舌淡苔薄白</div>
+                                        <div><strong>脉象：</strong>脉细弱或结代</div>
+                                        <div><strong>中成药：</strong>生脉饮、归脾丸</div>
+                                        <div><strong>食补：</strong>红枣桂圆汤、人参鸡汤</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 脾气虚 -->
+                                <div class="syndrome-card bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                    <h5 class="font-bold text-yellow-600 mb-3">脾气虚</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div><strong>主症：</strong>食欲不振、腹胀、便溏</div>
+                                        <div><strong>兼症：</strong>神疲乏力、少气懒言</div>
+                                        <div><strong>舌象：</strong>舌淡胖有齿痕</div>
+                                        <div><strong>脉象：</strong>脉缓弱</div>
+                                        <div><strong>中成药：</strong>四君子丸、补中益气丸</div>
+                                        <div><strong>食补：</strong>山药粥、白扁豆汤</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 肺气虚 -->
+                                <div class="syndrome-card bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                    <h5 class="font-bold text-gray-600 mb-3">肺气虚</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div><strong>主症：</strong>咳嗽无力、气短、自汗</div>
+                                        <div><strong>兼症：</strong>声音低微、易感冒</div>
+                                        <div><strong>舌象：</strong>舌淡苔薄白</div>
+                                        <div><strong>脉象：</strong>脉虚弱</div>
+                                        <div><strong>中成药：</strong>玉屏风散、补肺丸</div>
+                                        <div><strong>食补：</strong>银耳莲子汤、百合粥</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 肝气虚 -->
+                                <div class="syndrome-card bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                    <h5 class="font-bold text-tcm-green mb-3">肝气虚</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div><strong>主症：</strong>情绪不稳、易惊、胁痛</div>
+                                        <div><strong>兼症：</strong>视物模糊、筋脉拘挛</div>
+                                        <div><strong>舌象：</strong>舌淡苔薄</div>
+                                        <div><strong>脉象：</strong>脉弦细</div>
+                                        <div><strong>中成药：</strong>逍遥丸、柔肝丸</div>
+                                        <div><strong>食补：</strong>枸杞菊花茶、当归炖鸡</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 肾气虚 -->
+                                <div class="syndrome-card bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                    <h5 class="font-bold text-gray-900 dark:text-white mb-3">肾气虚</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div><strong>主症：</strong>腰膝酸软、小便频数、夜尿多</div>
+                                        <div><strong>兼症：</strong>耳鸣、健忘、性功能减退</div>
+                                        <div><strong>舌象：</strong>舌淡胖</div>
+                                        <div><strong>脉象：</strong>脉沉弱</div>
+                                        <div><strong>中成药：</strong>肾气丸、五子衍宗丸</div>
+                                        <div><strong>食补：</strong>黑豆汤、核桃粥</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 血虚证 -->
+                <div class="accordion-item mb-6">
+                    <button class="accordion-header w-full bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 text-left flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <h4 class="text-xl font-bold text-tcm-primary">血虚证</h4>
+                        <i class="fas fa-chevron-down accordion-icon transition-transform"></i>
+                    </button>
+                    <div class="accordion-content bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
+                        <div class="p-6 border-t">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- 心血虚 -->
+                                <div class="syndrome-card bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                    <h5 class="font-bold text-tcm-red mb-3">心血虚</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div><strong>主症：</strong>心悸、失眠、健忘</div>
+                                        <div><strong>兼症：</strong>面色无华、唇甲色淡</div>
+                                        <div><strong>舌象：</strong>舌淡苔薄白</div>
+                                        <div><strong>脉象：</strong>脉细弱</div>
+                                        <div><strong>中成药：</strong>归脾丸、养血安神丸</div>
+                                        <div><strong>食补：</strong>红枣银耳汤、阿胶糕</div>
+                                        <div><strong>特效方：</strong>玉灵膏（参考罗大伦理论）</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 肝血虚 -->
+                                <div class="syndrome-card bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                    <h5 class="font-bold text-tcm-green mb-3">肝血虚</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div><strong>主症：</strong>视物模糊、头晕、月经量少</div>
+                                        <div><strong>兼症：</strong>指甲色淡、筋脉失养</div>
+                                        <div><strong>舌象：</strong>舌淡苔薄</div>
+                                        <div><strong>脉象：</strong>脉细弦</div>
+                                        <div><strong>中成药：</strong>四物汤、养血柔肝丸</div>
+                                        <div><strong>食补：</strong>当归羊肉汤、桂圆肉粥</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 阴虚证 -->
+                <div class="accordion-item mb-6">
+                    <button class="accordion-header w-full bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 text-left flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <h4 class="text-xl font-bold text-tcm-primary">阴虚证</h4>
+                        <i class="fas fa-chevron-down accordion-icon transition-transform"></i>
+                    </button>
+                    <div class="accordion-content bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
+                        <div class="p-6 border-t">
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <!-- 肺阴虚 -->
+                                <div class="syndrome-card bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                    <h5 class="font-bold text-gray-600 mb-3">肺阴虚</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div><strong>主症：</strong>干咳少痰、咽干口燥</div>
+                                        <div><strong>兼症：</strong>潮热、盗汗、声音嘶哑</div>
+                                        <div><strong>舌象：</strong>舌红少津</div>
+                                        <div><strong>脉象：</strong>脉细数</div>
+                                        <div><strong>中成药：</strong>养阴清肺丸、川贝枇杷膏</div>
+                                        <div><strong>食补：</strong>银耳雪梨汤、麦冬茶</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 胃阴虚 -->
+                                <div class="syndrome-card bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                    <h5 class="font-bold text-orange-600 mb-3">胃阴虚</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div><strong>主症：</strong>口干欲饮、食欲不振、胃脘隐痛</div>
+                                        <div><strong>兼症：</strong>大便干结、午后潮热</div>
+                                        <div><strong>舌象：</strong>舌红少苔</div>
+                                        <div><strong>脉象：</strong>脉细数</div>
+                                        <div><strong>中成药：</strong>益胃汤、玉竹胃安丸</div>
+                                        <div><strong>食补：</strong>石斛花茶、玉竹瘦肉汤</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 肾阴虚 -->
+                                <div class="syndrome-card bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                    <h5 class="font-bold text-gray-900 dark:text-white mb-3">肾阴虚</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div><strong>主症：</strong>腰膝酸软、潮热盗汗、遗精</div>
+                                        <div><strong>兼症：</strong>头晕耳鸣、五心烦热</div>
+                                        <div><strong>舌象：</strong>舌红少苔</div>
+                                        <div><strong>脉象：</strong>脉细数</div>
+                                        <div><strong>中成药：</strong>六味地黄丸、左归丸</div>
+                                        <div><strong>食补：</strong>枸杞桑葚汤、黑芝麻糊</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 阳虚证 -->
+                <div class="accordion-item mb-6">
+                    <button class="accordion-header w-full bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 text-left flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <h4 class="text-xl font-bold text-tcm-primary">阳虚证</h4>
+                        <i class="fas fa-chevron-down accordion-icon transition-transform"></i>
+                    </button>
+                    <div class="accordion-content bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
+                        <div class="p-6 border-t">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- 脾阳虚 -->
+                                <div class="syndrome-card bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                    <h5 class="font-bold text-yellow-600 mb-3">脾阳虚</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div><strong>主症：</strong>腹痛喜按、便溏、畏寒</div>
+                                        <div><strong>兼症：</strong>四肢不温、浮肿</div>
+                                        <div><strong>舌象：</strong>舌淡胖嫩，苔白滑</div>
+                                        <div><strong>脉象：</strong>脉沉迟</div>
+                                        <div><strong>中成药：</strong>理中丸、附子理中丸</div>
+                                        <div><strong>食补：</strong>生姜红糖汤、桂圆莲子粥</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 肾阳虚 -->
+                                <div class="syndrome-card bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                    <h5 class="font-bold text-gray-900 dark:text-white mb-3">肾阳虚</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div><strong>主症：</strong>腰膝冷痛、夜尿频多、阳痿</div>
+                                        <div><strong>兼症：</strong>畏寒怕冷、精神萎靡</div>
+                                        <div><strong>舌象：</strong>舌淡胖，苔白</div>
+                                        <div><strong>脉象：</strong>脉沉迟无力</div>
+                                        <div><strong>中成药：</strong>金匮肾气丸、右归丸</div>
+                                        <div><strong>食补：</strong>羊肉汤、韭菜炒虾仁</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 实证分类 -->
+            <div class="mb-12">
+                <h3 class="text-2xl font-bold mb-6 text-tcm-secondary">实证分类</h3>
+                
+                <!-- 气滞证 -->
+                <div class="accordion-item mb-6">
+                    <button class="accordion-header w-full bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 text-left flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <h4 class="text-xl font-bold text-tcm-primary">气滞证</h4>
+                        <i class="fas fa-chevron-down accordion-icon transition-transform"></i>
+                    </button>
+                    <div class="accordion-content bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
+                        <div class="p-6 border-t">
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <!-- 肝气郁结 -->
+                                <div class="syndrome-card bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                    <h5 class="font-bold text-tcm-green mb-3">肝气郁结</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div><strong>主症：</strong>胸胁胀满、情绪抑郁、善太息</div>
+                                        <div><strong>兼症：</strong>急躁易怒、月经不调、乳房胀痛</div>
+                                        <div><strong>舌象：</strong>舌苔薄白或薄黄</div>
+                                        <div><strong>脉象：</strong>脉弦</div>
+                                        <div><strong>中成药：</strong>逍遥丸、柴胡疏肝散</div>
+                                        <div><strong>食补：</strong>玫瑰花茶、陈皮、佛手</div>
+                                        <div><strong>泡脚方：</strong>罗大伦疏肝理气方</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 脾气郁结 -->
+                                <div class="syndrome-card bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                    <h5 class="font-bold text-yellow-600 mb-3">脾气郁结</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div><strong>主症：</strong>腹胀满闷、食欲不振、大便不爽</div>
+                                        <div><strong>兼症：</strong>思虑过度、精神疲倦</div>
+                                        <div><strong>舌象：</strong>舌淡苔白厚</div>
+                                        <div><strong>脉象：</strong>脉缓弦</div>
+                                        <div><strong>中成药：</strong>木香顺气丸、香砂六君子丸</div>
+                                        <div><strong>食补：</strong>山楂、麦芽、鸡内金</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 肺气郁结 -->
+                                <div class="syndrome-card bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                    <h5 class="font-bold text-gray-600 mb-3">肺气郁结</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div><strong>主症：</strong>胸闷、咳嗽、气逆</div>
+                                        <div><strong>兼症：</strong>咽喉异物感、声音嘶哑</div>
+                                        <div><strong>舌象：</strong>舌苔薄白</div>
+                                        <div><strong>脉象：</strong>脉弦滑</div>
+                                        <div><strong>中成药：</strong>杏苏散、苏子降气丸</div>
+                                        <div><strong>食补：</strong>梨、枇杷、杏仁</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 血瘀证 -->
+                <div class="accordion-item mb-6">
+                    <button class="accordion-header w-full bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 text-left flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <h4 class="text-xl font-bold text-tcm-primary">血瘀证</h4>
+                        <i class="fas fa-chevron-down accordion-icon transition-transform"></i>
+                    </button>
+                    <div class="accordion-content bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
+                        <div class="p-6 border-t">
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <!-- 心血瘀阻 -->
+                                <div class="syndrome-card bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                    <h5 class="font-bold text-tcm-red mb-3">心血瘀阻</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div><strong>主症：</strong>胸痛如刺、心悸、舌质紫暗</div>
+                                        <div><strong>兼症：</strong>胸闷、心前区痛有定处</div>
+                                        <div><strong>舌象：</strong>舌质紫暗或有瘀斑</div>
+                                        <div><strong>脉象：</strong>脉涩或结代</div>
+                                        <div><strong>中成药：</strong>血府逐瘀丸、丹参滴丸</div>
+                                        <div><strong>食补：</strong>山楂、红花、丹参茶</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 肝血瘀滞 -->
+                                <div class="syndrome-card bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                    <h5 class="font-bold text-tcm-green mb-3">肝血瘀滞</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div><strong>主症：</strong>胁肋刺痛、月经有血块、经前乳胀</div>
+                                        <div><strong>兼症：</strong>面色晦暗、急躁易怒</div>
+                                        <div><strong>舌象：</strong>舌边有瘀点或瘀斑</div>
+                                        <div><strong>脉象：</strong>脉弦涩</div>
+                                        <div><strong>中成药：</strong>血府逐瘀丸、逍遥丸合四物汤</div>
+                                        <div><strong>食补：</strong>红花、桃仁、当归</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 瘀血阻络 -->
+                                <div class="syndrome-card bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                    <h5 class="font-bold text-purple-800 mb-3">瘀血阻络</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div><strong>主症：</strong>肌肤甲错、面色晦暗、刺痛固定</div>
+                                        <div><strong>兼症：</strong>舌下静脉曲张、皮肤粗糙</div>
+                                        <div><strong>舌象：</strong>舌质紫暗有瘀斑</div>
+                                        <div><strong>脉象：</strong>脉细涩</div>
+                                        <div><strong>中成药：</strong>大黄蛰虫丸、活血化瘀丸</div>
+                                        <div><strong>食补：</strong>三七粉、红糖水、黑豆</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 痰湿证 -->
+                <div class="accordion-item mb-6">
+                    <button class="accordion-header w-full bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 text-left flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <h4 class="text-xl font-bold text-tcm-primary">痰湿证</h4>
+                        <i class="fas fa-chevron-down accordion-icon transition-transform"></i>
+                    </button>
+                    <div class="accordion-content bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
+                        <div class="p-6 border-t">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="syndrome-card bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                    <h5 class="font-bold text-blue-600 mb-3">痰湿阻络</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div><strong>主症：</strong>胸闷、咳嗽痰多、身重困倦</div>
+                                        <div><strong>兼症：</strong>头重如裹、恶心呕吐</div>
+                                        <div><strong>舌象：</strong>舌胖大，苔腻</div>
+                                        <div><strong>脉象：</strong>脉滑</div>
+                                        <div><strong>中成药：</strong>二陈丸、平胃散</div>
+                                        <div><strong>食补：</strong>薏米粥、陈皮茶</div>
+                                        <div><strong>泡脚方：</strong>温胆汤泡脚（参考罗大伦方法）</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="syndrome-card bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                    <h5 class="font-bold text-green-600 mb-3">湿热证</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div><strong>主症：</strong>身热不扬、胸脘痞满、小便黄赤</div>
+                                        <div><strong>兼症：</strong>大便粘腻、口苦口腻</div>
+                                        <div><strong>舌象：</strong>舌红苔黄腻</div>
+                                        <div><strong>脉象：</strong>脉滑数</div>
+                                        <div><strong>中成药：</strong>甘露消毒丸、三仁汤</div>
+                                        <div><strong>食补：</strong>绿豆汤、冬瓜汤</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 方药食补 -->
+    <section id="prescriptions" class="py-16 bg-gray-100 dark:bg-gray-800">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center mb-12 text-tcm-primary">经典方药与食补方案</h2>
+            
+            <!-- 虚不受补解决方案 -->
+            <div class="mb-12">
+                <h3 class="text-2xl font-bold mb-6 text-tcm-secondary">虚不受补解决方案（基于罗大伦理论）</h3>
+                <div class="bg-white dark:bg-gray-700 rounded-lg shadow-lg p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <h4 class="text-xl font-bold mb-4 text-tcm-accent">一吃补药就上火的处理方法</h4>
+                            <div class="space-y-4">
+                                <div class="border-l-4 border-tcm-primary pl-4">
+                                    <h5 class="font-bold">1. 肝气不舒型</h5>
+                                    <p class="text-gray-600 dark:text-gray-400">症状：舌尖红、口苦、胸胁胀满</p>
+                                    <p class="text-tcm-primary">方案：疏肝理气泡脚方</p>
+                                </div>
+                                <div class="border-l-4 border-tcm-secondary pl-4">
+                                    <h5 class="font-bold">2. 痰湿阻滞型</h5>
+                                    <p class="text-gray-600 dark:text-gray-400">症状：舌苔厚腻、身重困倦</p>
+                                    <p class="text-tcm-primary">方案：温胆汤泡脚，先化痰湿</p>
+                                </div>
+                                <div class="border-l-4 border-tcm-accent pl-4">
+                                    <h5 class="font-bold">3. 脾胃虚弱型</h5>
+                                    <p class="text-gray-600 dark:text-gray-400">症状：食欲不振、腹胀便溏</p>
+                                    <p class="text-tcm-primary">方案：先健脾胃，再进补</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 class="text-xl font-bold mb-4 text-tcm-accent">经典食补方案</h4>
+                            <div class="space-y-4">
+                                <div class="bg-gray-50 dark:bg-gray-600 rounded-lg p-4">
+                                    <h5 class="font-bold text-tcm-red">玉灵膏（血虚首选）</h5>
+                                    <p class="text-sm">配方：龙眼肉10份，西洋参1份</p>
+                                    <p class="text-sm">制法：隔水蒸40小时，每次1勺</p>
+                                    <p class="text-sm text-tcm-primary">适用：血虚失眠、心悸、面色无华</p>
+                                </div>
+                                
+                                <div class="bg-gray-50 dark:bg-gray-600 rounded-lg p-4">
+                                    <h5 class="font-bold text-yellow-600">五红汤（气血双补）</h5>
+                                    <p class="text-sm">配方：红豆、红枣、红花生、红糖、枸杞</p>
+                                    <p class="text-sm">制法：煮水代茶饮</p>
+                                    <p class="text-sm text-tcm-primary">适用：气血不足、贫血、产后调养</p>
+                                </div>
+                                
+                                <div class="bg-gray-50 dark:bg-gray-600 rounded-lg p-4">
+                                    <h5 class="font-bold text-gray-600">生脉饮（气阴双补）</h5>
+                                    <p class="text-sm">配方：人参、麦冬、五味子</p>
+                                    <p class="text-sm">制法：煎煮或泡茶</p>
+                                    <p class="text-sm text-tcm-primary">适用：气短乏力、干咳少痰、汗多</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 季节养生方案 -->
+            <div class="mb-12">
+                <h3 class="text-2xl font-bold mb-6 text-tcm-secondary">四季养生方案</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- 春季养肝 -->
+                    <div class="bg-white dark:bg-gray-700 rounded-lg shadow-lg p-6">
+                        <div class="w-16 h-16 bg-tcm-green rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-leaf text-white text-2xl"></i>
+                        </div>
+                        <h4 class="text-xl font-bold text-center mb-4 text-tcm-green">春季养肝</h4>
+                        <div class="space-y-2 text-sm">
+                            <div><strong>原则：</strong>疏肝理气，养血柔肝</div>
+                            <div><strong>食补：</strong>枸杞、菊花、绿豆芽</div>
+                            <div><strong>中药：</strong>逍遥丸、柴胡疏肝散</div>
+                            <div><strong>注意：</strong>少酸增甘，调畅情志</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 夏季养心 -->
+                    <div class="bg-white dark:bg-gray-700 rounded-lg shadow-lg p-6">
+                        <div class="w-16 h-16 bg-tcm-red rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-heart text-white text-2xl"></i>
+                        </div>
+                        <h4 class="text-xl font-bold text-center mb-4 text-tcm-red">夏季养心</h4>
+                        <div class="space-y-2 text-sm">
+                            <div><strong>原则：</strong>清心火，养心阴</div>
+                            <div><strong>食补：</strong>莲子、百合、苦瓜</div>
+                            <div><strong>中药：</strong>生脉饮、清心莲子饮</div>
+                            <div><strong>注意：</strong>少苦增辛，静心安神</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 秋季养肺 -->
+                    <div class="bg-white dark:bg-gray-700 rounded-lg shadow-lg p-6">
+                        <div class="w-16 h-16 bg-gray-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-lungs text-white text-2xl"></i>
+                        </div>
+                        <h4 class="text-xl font-bold text-center mb-4 text-gray-600">秋季养肺</h4>
+                        <div class="space-y-2 text-sm">
+                            <div><strong>原则：</strong>润肺燥，养肺阴</div>
+                            <div><strong>食补：</strong>梨、银耳、蜂蜜</div>
+                            <div><strong>中药：</strong>沙参麦冬汤、养阴清肺汤</div>
+                            <div><strong>注意：</strong>少辛增酸，润燥养阴</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 冬季养肾 -->
+                    <div class="bg-white dark:bg-gray-700 rounded-lg shadow-lg p-6">
+                        <div class="w-16 h-16 bg-black rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-snowflake text-white text-2xl"></i>
+                        </div>
+                        <h4 class="text-xl font-bold text-center mb-4 text-gray-900 dark:text-white">冬季养肾</h4>
+                        <div class="space-y-2 text-sm">
+                            <div><strong>原则：</strong>温肾阳，滋肾阴</div>
+                            <div><strong>食补：</strong>黑豆、核桃、羊肉</div>
+                            <div><strong>中药：</strong>金匮肾气丸、六味地黄丸</div>
+                            <div><strong>注意：</strong>少咸增苦，温阳固肾</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 学习资源 -->
+    <section id="books" class="py-16">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center mb-12 text-tcm-primary">推荐学习资源</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- 罗大伦著作 -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-bold mb-4 text-tcm-secondary">罗大伦系列著作</h3>
+                    <div class="space-y-3">
+                        <div class="border-b pb-2">
+                            <h4 class="font-bold">《救命之方》</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">古代名方的现代应用</p>
+                        </div>
+                        <div class="border-b pb-2">
+                            <h4 class="font-bold">《神农本草经》</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">中药学经典解读</p>
+                        </div>
+                        <div class="border-b pb-2">
+                            <h4 class="font-bold">《古代的中医》</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">古代名医传记与医案</p>
+                        </div>
+                        <div>
+                            <h4 class="font-bold">《图解舌诊》</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">舌诊入门必读</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 经典教材 -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-bold mb-4 text-tcm-secondary">经典教材</h3>
+                    <div class="space-y-3">
+                        <div class="border-b pb-2">
+                            <h4 class="font-bold">《中医基础理论》</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">高等教育出版社</p>
+                        </div>
+                        <div class="border-b pb-2">
+                            <h4 class="font-bold">《中医诊断学》</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">人民卫生出版社</p>
+                        </div>
+                        <div class="border-b pb-2">
+                            <h4 class="font-bold">《方剂学》</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">上海科学技术出版社</p>
+                        </div>
+                        <div>
+                            <h4 class="font-bold">《中药学》</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">中国中医药出版社</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 古典名著 -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-bold mb-4 text-tcm-secondary">古典名著</h3>
+                    <div class="space-y-3">
+                        <div class="border-b pb-2">
+                            <h4 class="font-bold">《黄帝内经》</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">中医理论基础</p>
+                        </div>
+                        <div class="border-b pb-2">
+                            <h4 class="font-bold">《伤寒论》</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">外感病治疗经典</p>
+                        </div>
+                        <div class="border-b pb-2">
+                            <h4 class="font-bold">《金匮要略》</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">杂病治疗要典</p>
+                        </div>
+                        <div>
+                            <h4 class="font-bold">《温病条辨》</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">温病学说代表</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 学习建议 -->
+            <div class="mt-12 bg-gradient-to-r from-tcm-primary to-tcm-secondary rounded-lg text-white p-8">
+                <h3 class="text-2xl font-bold text-center mb-6">学习建议</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="text-center">
+                        <i class="fas fa-book-open text-4xl mb-4"></i>
+                        <h4 class="font-bold mb-2">循序渐进</h4>
+                        <p class="text-sm">从基础理论开始，逐步深入学习</p>
+                    </div>
+                    <div class="text-center">
+                        <i class="fas fa-users text-4xl mb-4"></i>
+                        <h4 class="font-bold mb-2">师从名医</h4>
+                        <p class="text-sm">跟随经验丰富的中医师学习</p>
+                    </div>
+                    <div class="text-center">
+                        <i class="fas fa-practice text-4xl mb-4"></i>
+                        <h4 class="font-bold mb-2">理论实践</h4>
+                        <p class="text-sm">结合临床实践，加深理解</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-tcm-primary text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-yin-yang text-tcm-primary"></i>
+                        </div>
+                        <h3 class="text-xl font-bold">中医学习平台</h3>
+                    </div>
+                    <p class="text-gray-200">传承中医智慧，守护健康生活</p>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-4">学习内容</h4>
+                    <ul class="space-y-2 text-gray-200">
+                        <li>基础理论</li>
+                        <li>辨证分型</li>
+                        <li>方药食补</li>
+                        <li>养生保健</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-4">特色功能</h4>
+                    <ul class="space-y-2 text-gray-200">
+                        <li>脏腑关系图解</li>
+                        <li>症状自诊</li>
+                        <li>食补方案</li>
+                        <li>学习资源</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-4">免责声明</h4>
+                    <p class="text-gray-200 text-sm">本平台仅供学习参考，不能替代专业医生诊断。如有疾病请及时就医。</p>
+                </div>
+            </div>
+            <div class="border-t border-tcm-secondary mt-8 pt-8 text-center text-gray-200">
+                <p>© 2023 中医学习平台 版权所有</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Tooltip -->
+    <div id="tooltip" class="tooltip"></div>
+
+    <script>
+        // 脏腑详细信息数据
+        const organData = {
+            heart: {
+                name: "心",
+                function: "主血脉，藏神",
+                connections: ["肺", "脾", "肾"],
+                symptoms: {
+                    deficiency: "心悸、失眠、健忘、面色无华",
+                    excess: "心烦、失眠、口舌生疮、舌尖红"
+                },
+                pathways: [
+                    "心与肺：心主血，肺主气，气血相依",
+                    "心与脾：心血生成依赖脾胃运化",
+                    "心与肾：心肾相交，水火既济"
+                ],
+                treatment: {
+                    herbs: "生脉饮、归脾丸、安神定志丸",
+                    food: "红枣、桂圆、百合、莲子"
+                }
+            },
+            liver: {
+                name: "肝",
+                function: "主疏泄，藏血",
+                connections: ["脾", "肺", "肾"],
+                symptoms: {
+                    deficiency: "视物模糊、月经量少、筋脉拘挛",
+                    excess: "急躁易怒、胁肋胀痛、头痛眩晕"
+                },
+                pathways: [
+                    "肝与脾：肝木克脾土，肝郁易致脾虚",
+                    "肝与肺：肝火犯肺，出现咳嗽气逆",
+                    "肝与肾：肝肾同源，精血互生"
+                ],
+                treatment: {
+                    herbs: "逍遥丸、柴胡疏肝散、四物汤",
+                    food: "枸杞、菊花、玫瑰花、当归"
+                }
+            },
+            spleen: {
+                name: "脾",
+                function: "主运化，统血",
+                connections: ["心", "肝", "肺", "肾"],
+                symptoms: {
+                    deficiency: "食欲不振、腹胀便溏、四肢乏力",
+                    excess: "腹胀满闷、恶心呕吐、口甘多涎"
+                },
+                pathways: [
+                    "脾与心：脾胃为气血生化之源",
+                    "脾与肝：木土相克，肝郁脾虚常见",
+                    "脾与肺：脾主升清，肺主降浊",
+                    "脾与肾：先后天相互资助"
+                ],
+                treatment: {
+                    herbs: "四君子汤、补中益气丸、参苓白术散",
+                    food: "山药、薏米、红枣、小米"
+                }
+            },
+            lung: {
+                name: "肺",
+                function: "主气，司呼吸",
+                connections: ["心", "脾", "肾"],
+                symptoms: {
+                    deficiency: "咳嗽无力、气短、自汗、易感冒",
+                    excess: "咳嗽痰多、胸闷、喘息"
+                },
+                pathways: [
+                    "肺与心：肺朝百脉，助心行血",
+                    "肺与脾：肺主宣降，脾主升清",
+                    "肺与肾：肺主呼气，肾主纳气"
+                ],
+                treatment: {
+                    herbs: "玉屏风散、补肺汤、清肺汤",
+                    food: "银耳、百合、梨、蜂蜜"
+                }
+            },
+            kidney: {
+                name: "肾",
+                function: "主藏精，主水",
+                connections: ["心", "肝", "脾", "肺"],
+                symptoms: {
+                    deficiency: "腰膝酸软、耳鸣、夜尿频、健忘",
+                    excess: "腰痛、水肿、小便不利"
+                },
+                pathways: [
+                    "肾与心：心肾相交，水火既济",
+                    "肾与肝：肝肾同源，精血互生",
+                    "肾与脾：先后天相互资助",
+                    "肾与肺：肾主纳气，肺肾相配"
+                ],
+                treatment: {
+                    herbs: "六味地黄丸、金匮肾气丸、左归丸",
+                    food: "黑豆、核桃、枸杞、海参"
+                }
+            }
+        };
+
+        // Mobile menu toggle
+        document.getElementById('mobileMenuBtn').addEventListener('click', function() {
+            const mobileMenu = document.getElementById('mobileMenu');
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // Smooth scroll function
+        function scrollToSection(sectionId) {
+            document.getElementById(sectionId).scrollIntoView({
+                behavior: 'smooth'
+            });
+        }
+
+        // Accordion functionality
+        document.querySelectorAll('.accordion-header').forEach(header => {
+            header.addEventListener('click', function() {
+                const content = this.nextElementSibling;
+                const icon = this.querySelector('.accordion-icon');
+                
+                // Close all other accordions
+                document.querySelectorAll('.accordion-content').forEach(otherContent => {
+                    if (otherContent !== content) {
+                        otherContent.classList.remove('open');
+                        otherContent.previousElementSibling.querySelector('.accordion-icon').style.transform = 'rotate(0deg)';
+                    }
+                });
+                
+                // Toggle current accordion
+                content.classList.toggle('open');
+                icon.style.transform = content.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
+            });
+        });
+
+        // Organ interaction
+        document.querySelectorAll('[data-organ]').forEach(organ => {
+            organ.addEventListener('click', function() {
+                const organType = this.dataset.organ;
+                showOrganDetails(organType);
+                
+                // Add pulse effect
+                this.classList.add('pulse');
+                setTimeout(() => {
+                    this.classList.remove('pulse');
+                }, 2000);
+            });
+            
+            // Hover effect
+            organ.addEventListener('mouseenter', function(e) {
+                const organType = this.dataset.organ;
+                const data = organData[organType];
+                const tooltip = document.getElementById('tooltip');
+                
+                tooltip.innerHTML = `
+                    <strong>${data.name}</strong><br>
+                    ${data.function}
+                `;
+                tooltip.style.opacity = '1';
+                tooltip.style.left = e.pageX + 10 + 'px';
+                tooltip.style.top = e.pageY + 10 + 'px';
+            });
+            
+            organ.addEventListener('mouseleave', function() {
+                document.getElementById('tooltip').style.opacity = '0';
+            });
+        });
+
+        function showOrganDetails(organType) {
+            const data = organData[organType];
+            const detailsDiv = document.getElementById('organDetails');
+            const contentDiv = document.getElementById('organContent');
+            
+            contentDiv.innerHTML = `
+                <h3 class="text-2xl font-bold mb-4 text-tcm-primary">${data.name}的详细信息</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="text-xl font-bold mb-3 text-tcm-secondary">生理功能</h4>
+                        <p class="mb-4">${data.function}</p>
+                        
+                        <h4 class="text-xl font-bold mb-3 text-tcm-secondary">常见症状</h4>
+                        <div class="space-y-2">
+                            <div class="p-3 bg-red-50 dark:bg-red-900 rounded">
+                                <strong class="text-red-700 dark:text-red-300">虚证：</strong>
+                                <span class="text-red-600 dark:text-red-400">${data.symptoms.deficiency}</span>
+                            </div>
+                            <div class="p-3 bg-blue-50 dark:bg-blue-900 rounded">
+                                <strong class="text-blue-700 dark:text-blue-300">实证：</strong>
+                                <span class="text-blue-600 dark:text-blue-400">${data.symptoms.excess}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-xl font-bold mb-3 text-tcm-secondary">脏腑关系</h4>
+                        <div class="space-y-2 mb-4">
+                            ${data.pathways.map(pathway => `
+                                <div class="p-2 bg-gray-100 dark:bg-gray-600 rounded text-sm">
+                                    ${pathway}
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <h4 class="text-xl font-bold mb-3 text-tcm-secondary">调理方法</h4>
+                        <div class="space-y-3">
+                            <div>
+                                <strong class="text-tcm-primary">中成药：</strong>
+                                <span class="text-sm">${data.treatment.herbs}</span>
+                            </div>
+                            <div>
+                                <strong class="text-tcm-primary">食补：</strong>
+                                <span class="text-sm">${data.treatment.food}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button onclick="hideOrganDetails()" class="mt-6 bg-tcm-primary text-white px-6 py-2 rounded-lg hover:bg-tcm-secondary transition-colors">
+                    关闭详情
+                </button>
+            `;
+            
+            detailsDiv.classList.remove('hidden');
+            detailsDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function hideOrganDetails() {
+            document.getElementById('organDetails').classList.add('hidden');
+        }
+
+        // Fade in animation on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('fade-in');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.syndrome-card').forEach(card => {
+            observer.observe(card);
+        });
+
+        // Navigation highlighting
+        window.addEventListener('scroll', () => {
+            const sections = ['basics', 'syndromes', 'organs', 'prescriptions', 'books'];
+            const navLinks = document.querySelectorAll('nav a');
+            
+            let current = '';
+            sections.forEach(section => {
+                const element = document.getElementById(section);
+                const rect = element.getBoundingClientRect();
+                if (rect.top <= 100 && rect.bottom >= 100) {
+                    current = section;
+                }
+            });
+            
+            navLinks.forEach(link => {
+                link.classList.remove('text-tcm-primary');
+                if (link.getAttribute('href') === `#${current}`) {
+                    link.classList.add('text-tcm-primary');
+                }
+            });
+        });
+    </script>
+
+
+</body></html>
